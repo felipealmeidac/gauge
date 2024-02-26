@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Gauge Chart Example</title>
+<style>
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+    }
+    
+    #gauge {
+        background-color: #f5f5f5;
+        border: 1px solid #ccc;
+        display: block;
+        margin: 0 auto; /* Centralizar na horizontal */
+    }
+</style>
+<script>
+window.onload = function() {
+    var canvas = document.getElementById('gauge');
+    var ctx = canvas.getContext('2d');
+    var angle = Math.PI; // Inicializar ângulo para a posição mínima
+
+    const gaugeColors = ['#E50000', '#E59500', '#E5D900', '#95E500', '#00E500']; // Cores para cada faixa de métrica
+
+    // Definir as faixas de porcentagem
+    var ranges = [20, 40, 60, 80, 100]; // faixas de 0-20%, 21-40%, ..., 81-100%
+    var segmentAngle = Math.PI / 5; // Ângulo de cada segmento de cor
+
+    // Definir a porcentagem do medidor (altere conforme necessário)
+    var nps = 100;
+
+    function drawGauge() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Aumentar o raio do arco para tornar o medidor mais largo
+        var gaugeRadius = 120;
+
+        // Calcular o centro do canvas
+        var centerX = canvas.width / 2;
+        var centerY = canvas.height / 2;
+
+        // Adicionar os ícones dentro de cada medidor
+        var iconNames = ['muitoinsatisfeito.png', 'insatisfeito.png', 'neutro.png', 'satisfeito.png', 'muitosatisfeito.png'];
+        var iconSize = 40; // Tamanho dos ícones
+        for (let i = 0; i < 5; i++) {
+            var icon = new Image();
+            icon.src = iconNames[i];
+            icon.onload = (function(icon, i) { // Usando uma função anônima para capturar o valor de i corretamente
+                return function() {
+                    // Calcular o ângulo do meio do segmento atual
+                    var segmentAngle = Math.PI / 5;
+                    var angle = Math.PI + (i * segmentAngle) + (segmentAngle / 2);
+
+                    // Calcular a posição X e Y do ícone no arco
+                    var iconRadius = gaugeRadius + 10; // Afastamento do ícone do medidor
+                    var x = centerX + iconRadius * Math.cos(angle) - iconSize / 2;
+                    var y = centerY + iconRadius * Math.sin(angle) - iconSize / 2;
+
+                    // Desenhar o ícone no arco
+                    ctx.drawImage(icon, x, y, iconSize, iconSize);
+                };
+            })(icon, i); // Passando o ícone e o valor de i para a função anônima
+        }
+
+        // Desenhar as faixas de métricas
+        for (let i = 0; i < 5; i++) {
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, gaugeRadius, Math.PI + (i * Math.PI / 5), Math.PI + ((i+1) * Math.PI / 5), false);
+            ctx.lineWidth = 80; // Aumentar a largura da linha para as faixas
+            ctx.strokeStyle = gaugeColors[i];
+            ctx.stroke();
+        }
+
+        // Adicionar a legenda abaixo de cada medidor
+        var legendLabels = ['Muito Insatisfeito', 'Insatisfeito', 'Neutro', 'Satisfeito', 'Muito Satisfeito'];
+        ctx.fillStyle = '#000'; // Cor do texto
+        ctx.font = '12px Arial'; // Estilo da fonte
+        ctx.textAlign = 'center'; // Alinhamento do texto
+        for (let i = 0; i < 5; i++) {
+            // Calcular o ângulo do meio do segmento atual
+            var segmentAngle = Math.PI / 5;
+            var angle = Math.PI + (i * segmentAngle) + (segmentAngle / 2);
+
+            // Calcular a posição X e Y da legenda abaixo do medidor
+            var textRadius = gaugeRadius + 90; // Afastamento da legenda do medidor
+            var x = centerX + textRadius * Math.cos(angle);
+            var y = centerY + textRadius * Math.sin(angle) + 20; // Adicionar 20 para posicionar abaixo do medidor
+
+            // Desenhar a legenda abaixo do medidor
+            ctx.fillText(legendLabels[i], x, y);
+        }
+    }
+
+    function drawPointer() {
+        // Configurações da seta
+        var arrowSize = 10; // Tamanho da seta
+        var arrowAngle = Math.PI / 6; // Ângulo da seta
+
+        // Determinar o segmento alvo com base na porcentagem atual
+        var targetSegment = 0;
+        for (var i = 0; i < ranges.length; i++) {
+            if (nps <= ranges[i]) {
+                targetSegment = i;
+                break;
+            }
+        }
+
+        // Calcular o ângulo do meio do segmento alvo
+        var targetAngle = Math.PI + (targetSegment * segmentAngle) + (segmentAngle / 2);
+
+        // Calcular as coordenadas x e y para o ponto externo da seta
+        var x = canvas.width / 2 + 90 * Math.cos(targetAngle);
+        var y = canvas.height / 2 + 90 * Math.sin(targetAngle);
+
+        // Calcular as coordenadas x e y para as pontas da seta
+        var arrowX1 = x - arrowSize * Math.cos(targetAngle + arrowAngle); // Invertido
+        var arrowY1 = y - arrowSize * Math.sin(targetAngle + arrowAngle); // Invertido
+        var arrowX2 = x - arrowSize * Math.cos(targetAngle - arrowAngle); // Invertido
+        var arrowY2 = y - arrowSize * Math.sin(targetAngle - arrowAngle); // Invertido
+
+        // Desenhar a linha
+        ctx.beginPath();
+        ctx.moveTo(canvas.width / 2, canvas.height / 2); // Centro do arco
+        ctx.lineTo(x, y); // Ponto externo da linha
+        ctx.strokeStyle = '#000'; // Cor da linha (preto)
+        ctx.lineWidth = 5; // Largura da linha
+        ctx.stroke();
+
+        // Desenhar a seta
+        ctx.beginPath();
+        ctx.moveTo(arrowX1, arrowY1);
+        ctx.lineTo(x, y);
+        ctx.lineTo(arrowX2, arrowY2);
+        ctx.strokeStyle = '#000'; // Cor da seta (preto)
+        ctx.lineWidth = 3; // Largura da linha da seta
+        ctx.closePath();
+        ctx.stroke();
+    }
+
+    function updateGauge(value) {
+        // Definir a porcentagem do medidor
+        nps = value;
+        drawGauge();
+        drawPointer();
+    }
+
+    // Desenhar o medidor inicial
+    drawGauge();
+    drawPointer();
+
+    // Atualizar o medidor com base em um valor (0 a 100)
+    // Você pode chamar essa função com um novo valor para atualizar o medidor
+    updateGauge(nps);
+};
+</script>
+</head>
+<body>
+    <canvas id="gauge" width="600" height="600"></canvas>
+</body>
+</html>
